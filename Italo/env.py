@@ -119,7 +119,7 @@ class DualWellEnv(Env):
         action_real = self.denormalize_action(action_norm)
         #print(f"Ar",action_real)
         if study:
-            action_real = 4.99244917, 4.9928566
+            action_real = 4,5
         self.u1_History.append(action_real[0])
         self.u2_History.append(action_real[1])
 

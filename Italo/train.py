@@ -16,7 +16,7 @@ config = {
     "render_every": 10,
     "save_dir": "results_td3",
     "initial_noise": 0.04,
-    "final_noise": 0.0002,
+    "final_noise": 0.005,
     "noise_decay_episodes": 100,
     "policy_noise": 0.1,
     "noise_clip": 0.3,
@@ -79,7 +79,7 @@ def train_td3():
         )
 
         while not done and steps < max_steps:
-            if steps % 50 == 0:
+            if steps % 2700 == 0:
                 action = agent.choose_action(obs, noise_scale=noise_scale)
             #print(f"Episode {episode}, Step {steps}, Action: {action}, Noise Scale: {noise_scale}")
             next_obs, reward, done, _, _ = env.step(action)
