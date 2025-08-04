@@ -8,15 +8,15 @@ config = {
     "beta": 5e-4,           # menor lr para críticos
     "tau": 0.005,
     "gamma": 0.99,
-    "batch_size": 256,
-    "buffer_size": 350000,
+    "batch_size": 512,
+    "buffer_size": 500000,
     "n_actions": 2,
     "n_episodes": 300,
     "max_steps": 10*60*60,
     "render_every": 10,
     "save_dir": "results_td3",
-    "initial_noise": 0.04,
-    "final_noise": 0.005,
+    "initial_noise": 0.1,
+    "final_noise": 0.001,
     "noise_decay_episodes": 100,
     "policy_noise": 0.1,
     "noise_clip": 0.3,
@@ -79,15 +79,22 @@ def train_td3():
         )
 
         while not done and steps < max_steps:
-            if steps % 3000 == 0:
+            
+            if steps % 20 == 0:
                 action = agent.choose_action(obs, noise_scale=noise_scale)
+
+
+            #if steps < 60*60:
+            #    action = np.array([-0.9,-0.9])
+
+
             #print(f"Episode {episode}, Step {steps}, Action: {action}, Noise Scale: {noise_scale}")
             next_obs, reward, done, _, _ = env.step(action)
             #print(f"Step {steps}: Action: {action}, Reward: {reward}, Done: {done}")
             agent.remember(obs, action, reward, next_obs, done)
 
             # Aprendizado e captura das perdas
-            if steps % (60*25) == 0:
+            if steps % (60) == 0:
                 losses = agent.learn()
             obs = next_obs
             total_reward += reward
@@ -105,7 +112,7 @@ def train_td3():
                 print(f"Losses | Critic1: {critic_1_loss:.8f}, Critic2: {critic_2_loss:.8f}, Actor: {actor_loss:.8f}")
         if episode % 1 == 0:
             fig = env.render(show_fig=False, save_fig=True, fig=fig)
-        if (episode + 1) % 50 == 0:
+        if (episode + 1) % 20 == 0:
             agent.save_models()
 
         if (episode+1) % 25 == 0:

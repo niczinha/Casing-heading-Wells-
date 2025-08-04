@@ -45,8 +45,8 @@ class DualWellEnv(Env):
         self.action_real_high = np.array([10, 10], dtype=np.float32)
         self.action_space = Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
-        self.initial_state = np.array([4986.94900064, 4046.70069931,  659.3209184,   615.94059295, 1501.95016371,
- 1778.69356488,  134.76380012,  344.00375514], dtype=np.float64)
+        self.initial_state = np.array([2302.41063144, 2293.63336004 , 505.57274887 , 541.0926033 , 2617.774545,
+ 2350.11341373  ,120.09746886 , 566.1227965 ], dtype=np.float64)
         self.x = self.initial_state.copy()
         self.time = 0
 
@@ -54,11 +54,11 @@ class DualWellEnv(Env):
         self.u2_History = []
         self.history = []
 
-        
+        self.gor = 0.02,0.02
         self.acumulado_o1 = 0
         self.acumulado_o2 = 0
-        self.base_gor1, self.base_gor2 = 0.041, 0.051
-        self.max_steps = 15 * 60 * 60  # 10 horas em segundos
+        self.base_gor1, self.base_gor2 = 0.02, 0.02
+        self.max_steps = 8 * 60 * 60  # 10 horas em segundos
 
     def normalize_obs(self, obs):
         return 2 * (obs - self.obs_min) / (self.obs_max - self.obs_min) - 1
@@ -67,13 +67,14 @@ class DualWellEnv(Env):
         return 0.5 * (action_norm + 1) * (self.action_real_high - self.action_real_low) + self.action_real_low
 
     def atualizar_gor(self):
-        fator1 = 1e-8 * 0
-        fator2 = 2e-8 * 0
+        fator1 = 6e-8*0
+        fator2 = 6e-8*0
         gor1 = self.base_gor1 + fator1 * self.acumulado_o1
         gor2 = self.base_gor2 + fator2 * self.acumulado_o2
         gor1 = min(gor1, 0.125)
         gor2 = min(gor2, 0.125)
         self.gor = (gor1, gor2)
+        
         return self.gor
 
     def reset(self, seed=None, options=None):
@@ -81,12 +82,11 @@ class DualWellEnv(Env):
         self.x = self.initial_state.copy()
         self.time = 0
         self.history = []
-        self.gor = (0.05, 0.60)
         self.u1_History = []
         self.u2_History = []
         self.acumulado_o1 = 0
         self.acumulado_o2 = 0
-        self.base_gor1, self.base_gor2 = np.random.uniform(0.07, 0.09), np.random.uniform(0.05, 0.09)
+        self.base_gor1, self.base_gor2 = np.random.uniform(0.02, 0.02), np.random.uniform(0.05, 0.09)
 
         par = np.array([1.0, 1.0, 1, 1, 0.02, 0.02])
         self.outputs = self.f_modelo(self.x, par, self.gor)
@@ -102,24 +102,30 @@ class DualWellEnv(Env):
         obs_norm = self.normalize_obs(obs)
         return obs_norm, {}
 
-    def reward(self, action_real):
-        preco_oleo = 100.0
-        custo_gas = 7.0
-        wto = self.outputs['wto_riser']  # produção de óleo total [kg/s]
-        receita = preco_oleo * wto
-        custo = custo_gas * (action_real[0] + action_real[1])
-        lucro = receita - custo
-        reward = lucro / 100000
-        reward = 500*(reward - 0.03405)
-        #print(reward)
-        return float(reward)
+    def reward(self, action_real,presure = True):
+        if presure:
+            P_Total = self.outputs['Pbh1'] + self.outputs['Pbh2']
+            reward = -(P_Total/1e7 -1.92)
+            #print(reward)
+            return reward
+        else:
+            preco_oleo = 100.0
+            custo_gas = 7.0
+            wto = self.outputs['wto_riser']  # produção de óleo total [kg/s]
+            receita = preco_oleo * wto
+            custo = custo_gas * (action_real[0] + action_real[1])
+            lucro = receita - custo
+            reward = lucro / 100000
+            reward = (reward-0.031)
+            #print(reward)
+            return float(reward)
 
-    def step(self, action_norm, study=False, eval=False):
+    def step(self, action_norm, study=False):
         #print(f"An",action_norm)
         action_real = self.denormalize_action(action_norm)
         #print(f"Ar",action_real)
         if study:
-            action_real = 4,5
+            action_real =  2,2
         self.u1_History.append(action_real[0])
         self.u2_History.append(action_real[1])
 

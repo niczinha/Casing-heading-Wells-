@@ -25,6 +25,8 @@ def evaluate_policy(agent, env, episodes=5, render=False):
         steps = 0
         while not done:
             action = agent.choose_action(obs, noise_scale=0)  # ação sem ruído
+            if steps < 60*60:
+                action = np.array([-0.9,-0.9])
             obs, reward, done, _, _ = env.step(action)
             total_reward += reward
             steps += 1
