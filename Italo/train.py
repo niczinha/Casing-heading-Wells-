@@ -65,7 +65,7 @@ def train_td3():
 
     rewards = []
     fig = None
-    agent.load_models()
+    #agent.load_models()
     for episode in range(n_episodes):
         obs, _ = env.reset()
         done = False
@@ -79,7 +79,7 @@ def train_td3():
         )
 
         while not done and steps < max_steps:
-            if steps % 2700 == 0:
+            if steps % 3000 == 0:
                 action = agent.choose_action(obs, noise_scale=noise_scale)
             #print(f"Episode {episode}, Step {steps}, Action: {action}, Noise Scale: {noise_scale}")
             next_obs, reward, done, _, _ = env.step(action)
@@ -102,13 +102,13 @@ def train_td3():
         if losses is not None:
             critic_1_loss, critic_2_loss, actor_loss = losses
             if actor_loss is not None:
-                print(f"Losses | Critic1: {critic_1_loss:.4f}, Critic2: {critic_2_loss:.4f}, Actor: {actor_loss:.4f}")
+                print(f"Losses | Critic1: {critic_1_loss:.8f}, Critic2: {critic_2_loss:.8f}, Actor: {actor_loss:.8f}")
         if episode % 1 == 0:
             fig = env.render(show_fig=False, save_fig=True, fig=fig)
         if (episode + 1) % 50 == 0:
             agent.save_models()
 
-        if (episode) % 25 == 0:
+        if (episode+1) % 25 == 0:
             # Avaliação periódica sem ruído
             eval_reward = evaluate_policy(agent, env, episodes=2)
             print(f"[TD3 Eval] Ep {episode} | Avg Eval Reward: {eval_reward:.2f}")

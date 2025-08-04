@@ -58,7 +58,7 @@ class DualWellEnv(Env):
         self.acumulado_o1 = 0
         self.acumulado_o2 = 0
         self.base_gor1, self.base_gor2 = 0.041, 0.051
-        self.max_steps = 2 * 60 * 60  # 10 horas em segundos
+        self.max_steps = 15 * 60 * 60  # 10 horas em segundos
 
     def normalize_obs(self, obs):
         return 2 * (obs - self.obs_min) / (self.obs_max - self.obs_min) - 1

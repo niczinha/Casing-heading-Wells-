@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from Agente_TD3.buffer import PrioritizedReplayBuffer
 from env import DualWellEnv
+
 env = DualWellEnv() # Definindo o ambiente
 
 num_obs = env.observation_space.shape[0]
@@ -20,22 +21,38 @@ upper_bound = env.action_space.high
 lower_bound = env.action_space.low
 
 
+import torch.nn as nn
+import torch.nn.functional as F
+
 class CriticNetwork(nn.Module):
     def __init__(self, beta, input_dims, n_actions, name, chkpt_dir='tmp/td3'):
         super().__init__()
         self.checkpoint_file = os.path.join(chkpt_dir, name)
-        self.fc1 = nn.Linear(input_dims + n_actions, 250)
-        self.fc2 = nn.Linear(250, 250)
-        self.q = nn.Linear(250, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=beta)
-        self.device = T.device('cuda' if T.cuda.is_available() else 'cpu')
+
+        self.fc1 = nn.Linear(input_dims + n_actions, 400)  # Corrigido aqui
+        self.ln1 = nn.LayerNorm(400)
+
+        self.fc2 = nn.Linear(400, 300)
+        self.ln2 = nn.LayerNorm(300)
+
+        self.q = nn.Linear(300, 1)
+
+        self.optimizer = T.optim.Adam(self.parameters(), lr=beta)
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state, action):
         x = T.cat([state, action], dim=1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.q(x)
+        x = self.fc1(x)
+        x = self.ln1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = self.ln2(x)
+        x = F.relu(x)
+        q = self.q(x)
+        return q
+
+
 
     def save_checkpoint(self):
         os.makedirs(os.path.dirname(self.checkpoint_file), exist_ok=True)
@@ -50,16 +67,23 @@ class ActorNetwork(nn.Module):
         super().__init__()
         self.checkpoint_file = os.path.join(chkpt_dir, name)
         self.fc1 = nn.Linear(input_dims, 100)
+        self.ln1 = nn.LayerNorm(100)
         self.fc2 = nn.Linear(100, 100)
+        self.ln2 = nn.LayerNorm(100)
         self.mu = nn.Linear(100, n_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = self.fc1(state)
+        x = self.ln1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = self.ln2(x)
+        x = F.relu(x)
         return T.tanh(self.mu(x))
+
 
     def save_checkpoint(self):
         os.makedirs(os.path.dirname(self.checkpoint_file), exist_ok=True)
@@ -117,7 +141,7 @@ class TD3Agent:
 
     def learn(self):
         if self.memory.mem_cntr < self.batch_size:
-            return
+            return None, None, None
 
         state, action, reward, new_state, done, idxs, is_weights = \
             self.memory.sample_buffer(self.batch_size)
@@ -142,7 +166,6 @@ class TD3Agent:
         q2 = self.critic_2(state, action)
         td_errors = (q1 - q_target).detach()
 
-        # Loss ponderado por importance sampling
         critic_1_loss = (is_weights * (q1 - q_target).pow(2)).mean()
         critic_2_loss = (is_weights * (q2 - q_target).pow(2)).mean()
 
@@ -154,10 +177,9 @@ class TD3Agent:
         critic_2_loss.backward()
         self.critic_2.optimizer.step()
 
-        # Atualiza prioridades no buffer
         self.memory.update_priorities(idxs, td_errors.cpu().numpy().flatten())
 
-        # Atualiza ator e redes-alvo
+        actor_loss = None
         if self.learn_step % self.policy_delay == 0:
             actor_loss = -self.critic_1(state, self.actor(state)).mean()
 
@@ -168,6 +190,8 @@ class TD3Agent:
             self.update_network_parameters()
 
         self.learn_step += 1
+
+        return critic_1_loss.item(), critic_2_loss.item(), actor_loss.item() if actor_loss is not None else None
 
 
     def update_network_parameters(self):
