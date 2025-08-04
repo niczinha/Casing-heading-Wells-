@@ -37,15 +37,16 @@ class DualWellEnv(Env):
         self.sim = RiserModel(p=10, m=2, steps=100000, dt=self.dt)
         self.f_modelo = self.sim.createModelo()
 
-        self.obs_min = np.array([0, 0, 0, 0, 0, 0], dtype=np.float32)
-        self.obs_max = np.array([25e6, 25e6, 46, 46, 15, 15], dtype=np.float32)
-        self.observation_space = Box(low=-1, high=1, shape=(6,), dtype=np.float32)
+        self.obs_min = np.array([9e6, 9e6, 10, 10], dtype=np.float32)
+        self.obs_max = np.array([15e6, 15e6, 20, 20], dtype=np.float32)
+        self.observation_space = Box(low=-1, high=1, shape=(4,), dtype=np.float32)
 
         self.action_real_low = np.array([0, 0], dtype=np.float32)
-        self.action_real_high = np.array([5, 5], dtype=np.float32)
+        self.action_real_high = np.array([10, 10], dtype=np.float32)
         self.action_space = Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
-        self.initial_state = np.array([3000, 3000, 800, 800, 6000, 6000, 130, 700], dtype=np.float64)
+        self.initial_state = np.array([4986.94900064, 4046.70069931,  659.3209184,   615.94059295, 1501.95016371,
+ 1778.69356488,  134.76380012,  344.00375514], dtype=np.float64)
         self.x = self.initial_state.copy()
         self.time = 0
 
@@ -56,8 +57,8 @@ class DualWellEnv(Env):
         
         self.acumulado_o1 = 0
         self.acumulado_o2 = 0
-        self.base_gor1, self.base_gor2 = 0.01, 0.01
-        self.max_steps = 10 * 60 * 60  # 10 horas em segundos
+        self.base_gor1, self.base_gor2 = 0.041, 0.051
+        self.max_steps = 2 * 60 * 60  # 10 horas em segundos
 
     def normalize_obs(self, obs):
         return 2 * (obs - self.obs_min) / (self.obs_max - self.obs_min) - 1
@@ -95,9 +96,8 @@ class DualWellEnv(Env):
             self.outputs['Pbh1'],
             self.outputs['Pbh2'],
             self.outputs['wpo1'],
-            self.outputs['wpo2'],
-            self.outputs['wpc1'],
-            self.outputs['wpc2'],
+            self.outputs['wpo2']
+
         ], dtype=np.float32)
         obs_norm = self.normalize_obs(obs)
         return obs_norm, {}
@@ -110,12 +110,16 @@ class DualWellEnv(Env):
         custo = custo_gas * (action_real[0] + action_real[1])
         lucro = receita - custo
         reward = lucro / 100000
+        reward = 500*(reward - 0.03405)
+        #print(reward)
         return float(reward)
 
-    def step(self, action_norm, study=True, eval=False):
+    def step(self, action_norm, study=False, eval=False):
+        #print(f"An",action_norm)
         action_real = self.denormalize_action(action_norm)
+        #print(f"Ar",action_real)
         if study:
-            action_real = 0.05,0.05
+            action_real = 4.99244917, 4.9928566
         self.u1_History.append(action_real[0])
         self.u2_History.append(action_real[1])
 
@@ -136,9 +140,7 @@ class DualWellEnv(Env):
             self.outputs['Pbh1'],
             self.outputs['Pbh2'],
             self.outputs['wpo1'],
-            self.outputs['wpo2'],
-            self.outputs['wpc1'],
-            self.outputs['wpc2'],
+            self.outputs['wpo2']
         ], dtype=np.float32)
 
         obs_norm = self.normalize_obs(obs)
@@ -164,7 +166,7 @@ class DualWellEnv(Env):
         tempo = np.linspace(0, self.dt * len(self.history), len(self.history)) / 3600
         tempo_u = np.linspace(0, self.dt * len(self.u1_History), len(self.u1_History)) / 3600
 
-        t_min = 100 / 3600
+        t_min = 0
         mask = tempo >= t_min
         mask_u = tempo_u >= t_min
 
@@ -227,6 +229,9 @@ class DualWellEnv(Env):
         if show_fig:
             plt.draw()
             plt.pause(0.001)
+        print(f"wpo1",saidas_dict['wpo1'][-1],"wpo2",saidas_dict['wpo2'][-1])
+
+        #print(f"Estado",self.x)
 
         return fig
 
