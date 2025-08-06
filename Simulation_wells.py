@@ -105,8 +105,8 @@ def fun(t, x, par):
     Pai1 = ((R * Ta1 / (Va1 * M)) + ((g * La1) / Va1)) * m_ga1
     ro_w1 = (m_gt1 + m_ot1) / (Lw1 * Aw1)
     Pwh1 = (R * Tw1 / M) * (m_gt1 / (Lw1 * Aw1 - (vo * m_ot1) + 1e-9))
-    Pwi1 = Pwh1 + (g / Aw1) * (m_ot1 + m_gt1) + dp_fric_t1
-    Pbh1 = Pwi1 + (ro_o * g * Hbh1) + dp_fric_bh1
+    Pwi1 = Pwh1 + (g / Aw1) * (m_ot1 + m_gt1) 
+    Pbh1 = Pwi1 + (ro_o * g * Hbh1) 
     ro_a1 = (M * Pai1) / (R * Ta)
     wiv1 = Civ1 * ca.sqrt(ca.fmax(1e-9, ro_a1 * (Pai1 - Pwi1)))
     y2_1 = ca.fmax(1e-9, (Pr1 - Pbh1))
