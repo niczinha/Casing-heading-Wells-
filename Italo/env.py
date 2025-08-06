@@ -17,8 +17,8 @@ class RiserModel:
         self.m = m
         self.steps = steps
         self.dt = dt
-        self.gor1 = 0.08
-        self.gor2 = 0.10
+        self.gor1 = 0.02
+        self.gor2 = 0.02
 
     def fun(self, t, x, par):
         return fun(t, x, par)
@@ -67,14 +67,14 @@ class DualWellEnv(Env):
         return 0.5 * (action_norm + 1) * (self.action_real_high - self.action_real_low) + self.action_real_low
 
     def atualizar_gor(self):
-        fator1 = 6e-8*0
-        fator2 = 6e-8*0
+        fator1 = 9e-8
+        fator2 = 9e-8
         gor1 = self.base_gor1 + fator1 * self.acumulado_o1
         gor2 = self.base_gor2 + fator2 * self.acumulado_o2
         gor1 = min(gor1, 0.125)
         gor2 = min(gor2, 0.125)
         self.gor = (gor1, gor2)
-        
+        #print(self.gor)
         return self.gor
 
     def reset(self, seed=None, options=None):
@@ -129,7 +129,7 @@ class DualWellEnv(Env):
         self.u1_History.append(action_real[0])
         self.u2_History.append(action_real[1])
 
-        self.atualizar_gor()
+        self.gor = self.atualizar_gor()
 
         par = np.array([action_real[0], action_real[1], 1, 1, self.gor[0], self.gor[1]], dtype=np.float64)
 

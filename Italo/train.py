@@ -15,7 +15,7 @@ config = {
     "max_steps": 10*60*60,
     "render_every": 10,
     "save_dir": "results_td3",
-    "initial_noise": 0.1,
+    "initial_noise": 0.01,
     "final_noise": 0.001,
     "noise_decay_episodes": 100,
     "policy_noise": 0.1,
@@ -65,7 +65,7 @@ def train_td3():
 
     rewards = []
     fig = None
-    #agent.load_models()
+    agent.load_models()
     for episode in range(n_episodes):
         obs, _ = env.reset()
         done = False
@@ -113,6 +113,7 @@ def train_td3():
         if episode % 1 == 0:
             fig = env.render(show_fig=False, save_fig=True, fig=fig)
         if (episode + 1) % 20 == 0:
+            print("Saving Models")
             agent.save_models()
 
         if (episode+1) % 25 == 0:
